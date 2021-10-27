@@ -43,15 +43,18 @@ async fn yo() -> impl Responder {
 #[post("/get")]
 async fn get(state: web::Data<State>, body: web::Json<Request>) -> impl Responder {
     let data = state.data.lock().unwrap();
-    let response = data.get(&body.key).unwrap();
-    HttpResponse::Ok().body(response)
+    match data.get(&body.key){
+        Some(response) => HttpResponse::Ok().body(response),
+        None => return HttpResponse::NoContent().finish()
+    }
+    
 }
 
 #[post("/add")]
 async fn add(state: web::Data<State>, body: web::Json<Body>) -> impl Responder {
     let mut data = state.data.lock().unwrap();
     data.insert(body.key.to_string(), body.value.to_string());
-    HttpResponse::Ok().finish()
+    HttpResponse::Created().finish()
 }
 
 /* Setup configurations */

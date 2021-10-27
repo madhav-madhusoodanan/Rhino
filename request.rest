@@ -2,5 +2,6 @@ POST http://localhost:8080/get
 Content-Type: application/json
 
 {
-    "key": "name"
+    "key": "name",
+    "value": "maddy"
 }
