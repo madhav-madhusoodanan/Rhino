@@ -1,7 +1,7 @@
 # The Rhino database
 
 An in-memory database written in pure Rust <br />
-More specifically, a server written using the **Actix Web** framework
+More specifically, a stateful server written using the **Actix Web** framework
 
 (Still under development)
 
