@@ -1,59 +1,62 @@
-use actix_web::{get, /* web, */ post, App, HttpServer, Responder, HttpResponse};
+use actix_web::{web, post, App, HttpServer, Responder, HttpResponse};
 use std::collections::HashMap;
 use std::sync::Mutex;
+use serde::Deserialize;
 
-const MAX_MEMORY: usize = 1024 * 1024 * 512;
+#[derive(Deserialize)]
+enum RequestType {
+    Get,
+    Post,
+    Put,
+    Delete,
+}
 
+#[derive(Deserialize)]
+struct Request {
+    key: String,
+}
+
+#[derive(Deserialize)]
+struct Body {
+    method: RequestType,
+    key: String,
+    value: String
+}
+
+/* The shared state */
 struct State {
     data: Mutex<HashMap<String, String>>,
-    memory: Mutex<usize>,
 }
 
 impl State {
     pub fn new() -> State {
-        State { data: Mutex::new(HashMap::new()), 
-                memory: Mutex::new(0), 
+        State { data: Mutex::new(HashMap::new())
             }
-    }
-
-    pub fn add(&mut self, key: String, value: String) -> bool {
-        let mut memory = self.memory.lock().unwrap();
-        let should_add = *memory + key.capacity() + value.capacity() < MAX_MEMORY;
-        if should_add {
-            let mut data = self.data.lock().unwrap();
-            *memory += key.capacity() + value.capacity();
-            data.insert(key, value);
-        }
-
-        return should_add;
-    }
-
-    pub fn get(&self, key: &String) -> Option<String> {
-        let data = self.data.lock().unwrap();
-        match data.get(key) {
-            Some(book) => Some(book.to_string()),
-            None => None
-        }
     }
 }
 
 /* router functions */
-#[get("/")]
-async fn get(/* data: web::Data<State> */) -> impl Responder {
-    HttpResponse::Ok().body("")
+#[post("/")]
+async fn get(state: web::Data<State>, body: web::Json<Request>) -> impl Responder {
+    let data = state.data.lock().unwrap();
+    let response = data.get(&body.key).unwrap();
+    HttpResponse::Ok().body(response)
 }
 
 #[post("/")]
-async fn post(/* data: web::Data<State> */) -> impl Responder {
+async fn post(state: web::Data<State>, body: web::Json<Body>) -> impl Responder {
+    let mut data = state.data.lock().unwrap();
+    data.insert(body.key.to_string(), body.value.to_string());
     HttpResponse::Ok().body("")
 }
 
 /* Setup configurations */
 #[actix_web::main]
 pub async fn main() -> std::io::Result<()> {
+    let state = web::Data::new(State::new());
     let factory = move || {
         App::new()
-                .app_data(State::new())
+                .app_data(state.clone())
                 .service(get)
     };
 
