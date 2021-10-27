@@ -1,4 +1,4 @@
-use actix_web::{web, post, App, HttpServer, Responder, HttpResponse};
+use actix_web::{get, web, post, App, HttpServer, Responder, HttpResponse};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use serde::Deserialize;
@@ -18,7 +18,6 @@ struct Request {
 
 #[derive(Deserialize)]
 struct Body {
-    method: RequestType,
     key: String,
     value: String
 }
@@ -36,18 +35,23 @@ impl State {
 }
 
 /* router functions */
-#[post("/")]
+#[get("/")]
+async fn yo() -> impl Responder {
+    HttpResponse::Ok().body("Yea yea i am good :)")
+}
+
+#[post("/get")]
 async fn get(state: web::Data<State>, body: web::Json<Request>) -> impl Responder {
     let data = state.data.lock().unwrap();
     let response = data.get(&body.key).unwrap();
     HttpResponse::Ok().body(response)
 }
 
-#[post("/")]
-async fn post(state: web::Data<State>, body: web::Json<Body>) -> impl Responder {
+#[post("/add")]
+async fn add(state: web::Data<State>, body: web::Json<Body>) -> impl Responder {
     let mut data = state.data.lock().unwrap();
     data.insert(body.key.to_string(), body.value.to_string());
-    HttpResponse::Ok().body("")
+    HttpResponse::Ok().finish()
 }
 
 /* Setup configurations */
@@ -57,7 +61,9 @@ pub async fn main() -> std::io::Result<()> {
     let factory = move || {
         App::new()
                 .app_data(state.clone())
+                .service(yo)
                 .service(get)
+                .service(add)
     };
 
     HttpServer::new(factory).bind("127.0.0.1:8080")?.run().await
