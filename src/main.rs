@@ -1,61 +1,11 @@
-use actix_web::{get, web, post, App, HttpServer, Responder, HttpResponse};
-use std::collections::HashMap;
-use std::sync::Mutex;
-use serde::Deserialize;
+/* Crate importing */
+use actix_web::{ web, App, HttpServer };
 
-#[derive(Deserialize)]
-enum RequestType {
-    Get,
-    Post,
-    Put,
-    Delete,
-}
-
-#[derive(Deserialize)]
-struct Request {
-    key: String,
-}
-
-#[derive(Deserialize)]
-struct Body {
-    key: String,
-    value: String
-}
-
-/* The shared state */
-struct State {
-    data: Mutex<HashMap<String, String>>,
-}
-
-impl State {
-    pub fn new() -> State {
-        State { data: Mutex::new(HashMap::new())
-            }
-    }
-}
-
-/* router functions */
-#[get("/")]
-async fn yo() -> impl Responder {
-    HttpResponse::Ok().body("Yea yea i am good :)")
-}
-
-#[post("/get")]
-async fn get(state: web::Data<State>, body: web::Json<Request>) -> impl Responder {
-    let data = state.data.lock().unwrap();
-    match data.get(&body.key){
-        Some(response) => HttpResponse::Ok().body(response),
-        None => return HttpResponse::NoContent().finish()
-    }
-    
-}
-
-#[post("/add")]
-async fn add(state: web::Data<State>, body: web::Json<Body>) -> impl Responder {
-    let mut data = state.data.lock().unwrap();
-    data.insert(body.key.to_string(), body.value.to_string());
-    HttpResponse::Created().finish()
-}
+/* Local modules */
+mod config;
+mod routes;
+use crate::config::{ State };
+use crate::routes::{ yo, get, add };
 
 /* Setup configurations */
 #[actix_web::main]
